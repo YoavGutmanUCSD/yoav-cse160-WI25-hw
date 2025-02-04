@@ -155,8 +155,8 @@ void OpenCLMatrixMultiply(Matrix *input0, Matrix *input1, Matrix *result)
 	size_t local_work_size[2] = {tileSize,tileSize};
 	// A^{LxN}^T * B^{LxM} = C^{NxM}
 	size_t global_work_size[2] = {
-		(input0->shape[0]+(tileSize-1))*tileSize,
-		(input1->shape[1]+(tileSize-1))*tileSize
+		((input0->shape[0]+(tileSize-1))/tileSize)*tileSize,
+		((input1->shape[1]+(tileSize-1))/tileSize)*tileSize
 	};
 	PRINT("set sizes\n");
 
