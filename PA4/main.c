@@ -12,12 +12,12 @@
         exit(EXIT_FAILURE);                           \
     }
 
-#define KERNEL_PATH "kernel_general.cl"
+#define KERNEL_PATH "kernel.cl"
 #define DEBUG_MODE 1
 #if DEBUG_MODE == 0
 #define PRINT printf
 #else
-#define PRINT if(0)
+#define PRINT if(0) printf
 #endif
 
 void OpenCLMatrixMultiply(Matrix *input0, Matrix *input1, Matrix *result)
@@ -54,7 +54,11 @@ void OpenCLMatrixMultiply(Matrix *input0, Matrix *input1, Matrix *result)
 	CHECK_ERR(err, "clCreateContext");
 
 	// Create a command queue
+# if __APPLE__
+	queue = clCreateCommandQueue(context, device_id, 0, &err);
+#else
 	queue = clCreateCommandQueueWithProperties(context, device_id, 0, &err);
+#endif
 	CHECK_ERR(err, "clCreateCommandQueueWithProperties");
 
     // Create the program from the source buffer
