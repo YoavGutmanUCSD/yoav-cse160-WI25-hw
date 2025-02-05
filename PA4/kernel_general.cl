@@ -47,19 +47,19 @@ __kernel void matrixMultiply(
 		// wait for others
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if(isActive){
+		/*if(isActive){*/
 			// put partial sum in sum var
 			for(int x = 0; x < TILE_SIZE; x++) { // assuming work groups are square
 				int locA = tile_A[i * TILE_SIZE + x];
 				int locB = tile_B[x * TILE_SIZE + j];
 				sum += locA * locB;
 			}
-		}
+		/*}*/
 		// on to the next one
 		cntr++;
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
-	if(isActive)
+	if(row < numCRows && col < numCColumns)
 		C[row * numCColumns + col] = sum;
 	
 }
