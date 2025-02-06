@@ -73,6 +73,10 @@ void OpenCLMatrixMultiply(Matrix *input0, Matrix *input1, Matrix *result)
     err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     CHECK_ERR(err, "clBuildProgram");
 
+	char buildLog[4096]; 
+	clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, sizeof(buildLog), buildLog, NULL); 
+	printf("Build Log:\n%s\n", buildLog);
+
     // Create the compute kernel in the program we wish to run
     kernel = clCreateKernel(program, "matrixMultiply", &err);
     CHECK_ERR(err, "clCreateKernel");
