@@ -7,12 +7,16 @@
 #include <CL/cl.h>
 #endif
 
-#include "matrix.h"
-
 #define IMAGE_CHANNELS 3
 
-cl_int LoadImg(const char *path, Matrix* img);
+typedef struct _Image 
+{
+    int *data;
+    unsigned int shape[IMAGE_CHANNELS];
+} Image;
+
+cl_int LoadImg(const char *path, Image* img);
 cl_int LoadStride(const char *dir, int *stride);
 cl_int LoadImgRaw(const char *path, Image* img);
-cl_int SaveImg(const char *path, Matrix *matrix);
-cl_int CheckImg(Matrix *truth, Matrix *student);
+cl_int SaveImg(const char *path, Image *matrix);
+cl_int CheckImg(Image *truth, Image *student);

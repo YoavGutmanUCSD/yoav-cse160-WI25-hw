@@ -13,12 +13,6 @@ typedef struct _Matrix
     unsigned int shape[2];
 } Matrix;
 
-typedef struct _Image 
-{
-    int *data;
-    unsigned int shape[3];
-} Image;
-
 cl_int LoadMatrix(const char *path, Matrix *matrix);
 cl_int SaveMatrix(const char *path, Matrix *matrix);
 cl_int CheckMatrix(Matrix *truth, Matrix *student);

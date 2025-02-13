@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from typing import List
 
 from gpu import GPU
-from nvprof import NVProfExecutable
+from intercept_layer_prof import InterceptLayerProfExecutable
 from printer import ok, warning
 
 DEFAULT_SUPPORTED_GPU = "NVIDIA GeForce GTX 1080 Ti"
@@ -35,8 +35,11 @@ if __name__ == "__main__":
 
     runs: List[float] = []
     for _ in range(args.num_runs):
-        prof = NVProfExecutable(args.args)
+        prof = InterceptLayerProfExecutable(args.args)
         runs.append(prof())
 
     execution_time = sum(runs) / args.num_runs
+    if execution_time == 0:
+        execution_time = -1
+
     ok(f"{execution_time:.2f} ms")

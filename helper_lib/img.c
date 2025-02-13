@@ -6,7 +6,7 @@
 
 #define RGB_COMPONENT_COLOR 255
 
-cl_int LoadImg(const char *path, Matrix* img)
+cl_int LoadImg(const char *path, Image* img)
 {
     char buff[16];
     FILE *fp;
@@ -141,7 +141,7 @@ cl_int LoadStride(const char *dir, int *stride) {
 }
 
 
-cl_int SaveImg(const char *path, Matrix* img)
+cl_int SaveImg(const char *path, Image* img)
 {
     int count = img->shape[0] * img->shape[1] * 3;
     unsigned char* data = (unsigned char *)malloc(img->shape[0] * img->shape[1] * IMAGE_CHANNELS * sizeof(char));
@@ -181,7 +181,7 @@ cl_int SaveImg(const char *path, Matrix* img)
     return 0;
 }
 
-cl_int CheckImg(Matrix *truth, Matrix *student)
+cl_int CheckImg(Image *truth, Image *student)
 {
     if (truth->shape[0] != student->shape[0] || truth->shape[1] != student->shape[1])
     {

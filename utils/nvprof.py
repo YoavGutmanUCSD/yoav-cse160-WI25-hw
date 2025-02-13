@@ -1,15 +1,12 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from pathlib import Path
 from subprocess import Popen, PIPE
 from typing import List
+from prof_base import ProfBase
 
-class NVProfBase(ABC):
+class NVProfBase(ProfBase, ABC):
     def __init__(self) -> None:
         super().__init__()
-
-    @abstractmethod
-    def profile(self) -> List[str]:
-        raise NotImplementedError
 
     def __call__(self) -> float:
         lines = self.profile()
