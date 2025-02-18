@@ -75,17 +75,17 @@ void OpenCLConvolution2D(Image *input0, Matrix *input1, Image *result, int strid
     kernel = clCreateKernel(program, "convolution2D", &err);
     CHECK_ERR(err, "clCreateKernel");
 
-	size_t input0_size = sizeof(int);
+	size_t input0_size = sizeof(int)*IMAGE_CHANNELS;
 	size_t input1_size = input1->shape[0] * input1->shape[1] * sizeof(int);
-	size_t result_size = sizeof(int);
+	size_t result_size = sizeof(int)*IMAGE_CHANNELS;
 	printf("[ ");
-	for(int i = 0; i < IMAGE_CHANNELS; i++){
+	for(int i = 0; i < 2; i++){
 		input0_size *= input0->shape[i];
-		/*result_size *= result->shape[i];*/
+		result_size *= result->shape[i];
 		printf("%d ", input0->shape[i]);
 	}
 	printf("]\n");
-	result_size = input0_size;
+	/*result_size = input0_size;*/
 
     //@@ Allocate GPU memory here
 	device_a = clCreateBuffer(
@@ -171,8 +171,8 @@ void OpenCLConvolution2D(Image *input0, Matrix *input1, Image *result, int strid
 	size_t global_work_size[2] = {
 		/*((result->shape[0]+(tileSize-1))/tileSize)*tileSize,*/
 		/*((result->shape[1]+(tileSize-1))/tileSize)*tileSize*/
-		input0->shape[0]
-			, input0->shape[1]
+		result->shape[0]
+			, result->shape[1]
 	};
 	size_t placeholder[2] = {1,1};
 	PRINT("set sizes\n");
@@ -259,8 +259,8 @@ int main(int argc, char *argv[])
     int rows, cols;
     //@@ Update these values for the output rows and cols of the output
     //@@ Do not use the results from the answer image
-	rows = host_a.shape[0];
-	cols = host_a.shape[1];
+	rows = host_a.shape[0] - host_b.shape[0] + 1;
+	cols = host_a.shape[1] - host_b.shape[1] + 1;
     
     // Allocate the memory for the target.
     host_c.shape[0] = rows;

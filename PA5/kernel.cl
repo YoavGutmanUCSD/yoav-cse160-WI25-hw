@@ -38,6 +38,8 @@ __kernel void convolution2D(
 	int jNum = get_group_id(0);
 	int iGlob = get_global_id(1);
 	int jGlob = get_global_id(0);
+	/*printf("%d\n", maskRadius);*/
+
 	for(int k = 0; k < imageChannels; k++){
 		int accum = 0;
 		for(int y = -maskRadius; y <= maskRadius; y++){
@@ -48,10 +50,17 @@ __kernel void convolution2D(
 						&& yOffset >= 0 && yOffset < height){
 					int imagePixel = inputData[(yOffset * width + xOffset)*imageChannels + k];
 					int maskValue = maskData[(y+maskRadius)*maskWidth+x+maskRadius];
-					accum += imagePixel * maskValue;
+					/*printf("%d ", accum);*/
+					/*printf("%d,%d\n ", imagePixel, maskValue);*/
+					accum += (imagePixel * maskValue);
 				}
 			}
 		}
-		outputData[(iGlob*width+jGlob)*imageChannels+k] = accum;
+		if(jGlob - maskRadius >= 0 && iGlob - maskRadius >= 0
+				&& jGlob + maskRadius < width
+				&& iGlob + maskRadius < height){
+			/*printf("wrote %d \n", accum);*/
+			outputData[((iGlob-maskRadius)*width+jGlob-maskRadius)*imageChannels+k] = accum;
+		}
 	}
 }
