@@ -171,8 +171,11 @@ void OpenCLConvolution2D(Image *input0, Matrix *input1, Image *result, int strid
 	size_t global_work_size[2] = {
 		/*((result->shape[0]+(tileSize-1))/tileSize)*tileSize,*/
 		/*((result->shape[1]+(tileSize-1))/tileSize)*tileSize*/
-		result->shape[0]
-			, result->shape[1]
+		/*result->shape[0]*/
+		/*	, result->shape[1]*/
+		input0->shape[0]
+			, input0->shape[1]
+
 	};
 	size_t placeholder[2] = {1,1};
 	PRINT("set sizes\n");
