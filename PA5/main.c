@@ -75,14 +75,14 @@ void OpenCLConvolution2D(Image *input0, Matrix *input1, Image *result, int strid
     kernel = clCreateKernel(program, "convolution2D", &err);
     CHECK_ERR(err, "clCreateKernel");
 
-	size_t input0_size = sizeof(int)*IMAGE_CHANNELS;
+	size_t input0_size = sizeof(int);
 	size_t input1_size = input1->shape[0] * input1->shape[1] * sizeof(int);
-	size_t result_size = sizeof(int)*IMAGE_CHANNELS;
+	size_t result_size = sizeof(int);
 	printf("[ ");
-	for(int i = 0; i < 2; i++){
+	for(int i = 0; i < 3; i++){
 		input0_size *= input0->shape[i];
 		result_size *= result->shape[i];
-		printf("%d ", input0->shape[i]);
+		printf("%d ", result->shape[i]);
 	}
 	printf("]\n");
 	/*result_size = input0_size;*/
@@ -261,10 +261,19 @@ int main(int argc, char *argv[])
     //@@ Do not use the results from the answer image
 	rows = host_a.shape[0] - host_b.shape[0] + 1;
 	cols = host_a.shape[1] - host_b.shape[1] + 1;
+
+	printf("a:[%d,%d]\nb:[%d,%d]\nc:[%d,%d]\n", 
+			host_a.shape[0]
+			,host_a.shape[1]
+			,host_b.shape[0]
+			,host_b.shape[1]
+			,rows
+			,cols);
     
     // Allocate the memory for the target.
     host_c.shape[0] = rows;
     host_c.shape[1] = cols;
+	host_c.shape[2] = IMAGE_CHANNELS;
     host_c.data = (int *)malloc(sizeof(int) * host_c.shape[0] * host_c.shape[1] * IMAGE_CHANNELS);
 
     OpenCLConvolution2D(&host_a, &host_b, &host_c, stride);
