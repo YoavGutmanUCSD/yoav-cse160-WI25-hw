@@ -29,29 +29,55 @@ __kernel void convolution2D(
             end
         end
     end**/
-	int maskRadius = maskWidth/2;
+
+	// define variables
+	// maskWidth already defined
+	unsigned int maskRadius = maskWidth / 2;
 	int iLoc = get_local_id(1);
 	int jLoc = get_local_id(0);
-	int iSize = get_local_size(1);
-	int jSize = get_local_size(0);
-	int iNum = get_group_id(1);
-	int jNum = get_group_id(0);
-	int iGlob = get_global_id(1);
+	int iGlob = get_global_id(1); // shift by mask radius
 	int jGlob = get_global_id(0);
-	for(int k = 0; k < imageChannels; k++){
-		int accum = 0;
-		for(int y = -maskRadius; y <= maskRadius; y++){
-			for(int x = -maskRadius; x <= maskRadius; x++){
-				int xOffset = jGlob + x;
-				int yOffset = iGlob + y;
-				if (xOffset >= 0 && xOffset < width
+	int xOffset, yOffset, xOffsetLocal, yOffsetLocal;
+
+	// load memory 
+	__local int tileMem[TILE_WIDTH][TILE_WIDTH][3];
+	// the 3 is imageChannels. there's always 3.
+	if(iGlob < width && jGlob < height){
+		tileMem[jLoc][iLoc][0] = inputData[jGlob * height*3 + iGlob*3]; // load from memory
+		tileMem[jLoc][iLoc][1] = inputData[jGlob * height*3 + iGlob*3 + 1]; // load from memory
+		tileMem[jLoc][iLoc][2] = inputData[jGlob * height*3 + iGlob*3 + 2]; // load from memory
+	}
+
+	barrier(CLK_LOCAL_MEM_FENCE); // end of load
+
+
+
+	// calculate 
+	// each work item handles one value
+	int accum[3] = {0,0,0};
+	if(iGlob < width && jGlob < height){
+		for (int x = -maskRadius; x <= maskRadius; x++){
+			for (int y = -maskRadius; y <= maskRadius; y++){
+				int maskValue = maskData[(y+maskRadius)*maskWidth+x+maskRadius];
+				xOffset = jLoc + x;
+				yOffset = iLoc + y;
+				if(xOffset >= 0 && xOffset < width
 						&& yOffset >= 0 && yOffset < height){
-					int imagePixel = inputData[(yOffset * width + xOffset)*imageChannels + k];
-					int maskValue = maskData[(y+maskRadius)*maskWidth+x+maskRadius];
-					accum += imagePixel * maskValue;
+					accum[0] += tileMem[yOffset][xOffset][0] * maskValue;
+					accum[1] += tileMem[yOffset][xOffset][1] * maskValue;
+					accum[2] += tileMem[yOffset][xOffset][2] * maskValue;
 				}
 			}
 		}
-		outputData[(iGlob*width+jGlob)*imageChannels+k] = accum;
 	}
+
+	barrier(CLK_LOCAL_MEM_FENCE); // end of calc
+
+	if(iGlob < width && jGlob < height){
+		int baseInd = (jGlob * width + iGlob) * 3;
+		for(int i = 0; i < 3; i++){
+			outputData[baseInd+i] = accum[i];
+		}
+	}
+	// wrap around
 }

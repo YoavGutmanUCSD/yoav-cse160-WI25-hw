@@ -21,6 +21,13 @@
 #define COMPUTE_OUTUT_DIM(input_dim, kernel_size, stride) \
     ((input_dim - kernel_size) / stride + 1)
 
+#define DEBUG_MODE 1
+#if DEBUG_MODE == 0
+#define PRINT printf
+#else
+#define PRINT if(0) printf
+#endif
+
 void OpenCLConvolution2D(Image *input0, Matrix *input1, Image *result, int stride)
 {
     // Load external OpenCL kernel code
@@ -68,9 +75,71 @@ void OpenCLConvolution2D(Image *input0, Matrix *input1, Image *result, int strid
     kernel = clCreateKernel(program, "convolution2D", &err);
     CHECK_ERR(err, "clCreateKernel");
 
+	size_t input0_size = sizeof(int);
+	size_t input1_size = input1->shape[0] * input1->shape[1] * sizeof(int);
+	size_t result_size = sizeof(int);
+	printf("[ ");
+	for(int i = 0; i < IMAGE_CHANNELS; i++){
+		input0_size *= input0->shape[i];
+		/*result_size *= result->shape[i];*/
+		printf("%d ", input0->shape[i]);
+	}
+	printf("]\n");
+	result_size = input0_size;
+
     //@@ Allocate GPU memory here
+	device_a = clCreateBuffer(
+			context
+			, CL_MEM_READ_ONLY
+			, input0_size
+			, NULL
+			, &err);
+
+	PRINT("allocated device_a\n");
+
+	device_b = clCreateBuffer(
+			context
+			, CL_MEM_READ_ONLY
+			, input1_size
+			, NULL
+			, &err);
+
+	PRINT("allocated device_b\n");
+
+	device_c = clCreateBuffer(
+			context
+			, CL_MEM_WRITE_ONLY
+			, result_size
+			, NULL
+			, &err);
+
+	PRINT("allocated device_c\n");
+
 
     //@@ Copy memory to the GPU here
+	clEnqueueWriteBuffer(
+			queue
+			, device_a
+			, CL_TRUE // maybe CL_FALSE possible -- try
+			, 0
+			, input0_size
+			, input0->data
+			, 0
+			, NULL
+			, NULL
+			);
+	PRINT("enqueue write to device_a\n");
+	clEnqueueWriteBuffer(
+			queue
+			, device_b
+			, CL_TRUE // maybe CL_FALSE possible -- try
+			, 0
+			, input1_size
+			, input1->data
+			, 0
+			, NULL
+			, NULL
+			);
 
     // Set the arguments to our compute kernel
     // __global float * inputData, __global float * outputData, __constant float * maskData,
@@ -96,17 +165,57 @@ void OpenCLConvolution2D(Image *input0, Matrix *input1, Image *result, int strid
     // Compute the output dim 
     // @@ define local and global work sizes
     // Execute the OpenCL kernel on the list
+	unsigned int tileSize = 8;
+	size_t local_work_size[2] = {tileSize,tileSize};
+	// A^{LxN}^T * B^{LxM} = C^{NxM}
+	size_t global_work_size[2] = {
+		/*((result->shape[0]+(tileSize-1))/tileSize)*tileSize,*/
+		/*((result->shape[1]+(tileSize-1))/tileSize)*tileSize*/
+		input0->shape[0]
+			, input0->shape[1]
+	};
+	size_t placeholder[2] = {1,1};
+	PRINT("set sizes\n");
     
     
     //@@ Launch the GPU Kernel here
     // Execute the OpenCL kernel on the array
+	clEnqueueNDRangeKernel(
+			queue
+			, kernel
+			, 2 // work dimension, i think 2d so 2
+			, NULL
+			, global_work_size
+			, placeholder
+			, 0
+			, NULL
+			, NULL);
+	PRINT("launched kernel\n");
 
 
     //@@ Copy the GPU memory back to the CPU here
     // Read the memory buffer output_mem_obj to the local variable result
-    
+	clEnqueueReadBuffer(
+			queue
+			, device_c
+			, CL_TRUE // maybe CL_FALSE possible -- try
+			, 0
+			, result_size
+			, result->data
+			, 0
+			, NULL
+			, NULL
+			);
+
     //@@ Free the GPU memory here
     // Release OpenCL resources
+	clReleaseMemObject(device_a);
+	clReleaseMemObject(device_b);
+	clReleaseMemObject(device_c);
+	clReleaseKernel(kernel);
+	clReleaseCommandQueue(queue);
+	clReleaseContext(context);
+	free(kernel_source);
 }
 
 int main(int argc, char *argv[])
@@ -150,7 +259,8 @@ int main(int argc, char *argv[])
     int rows, cols;
     //@@ Update these values for the output rows and cols of the output
     //@@ Do not use the results from the answer image
-    
+	rows = host_a.shape[0];
+	cols = host_a.shape[1];
     
     // Allocate the memory for the target.
     host_c.shape[0] = rows;
