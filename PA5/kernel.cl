@@ -1,4 +1,4 @@
-#define TILE_WIDTH 8
+#define TILE_WIDTH 21
 __kernel void convolution2D(
     __global int * inputData, __global int * outputData, __constant int * maskData,
     int width, int height, int maskWidth,  int imageChannels, int stride){
@@ -29,39 +29,68 @@ __kernel void convolution2D(
         end
     end**/
 	int maskRadius = maskWidth/2;
-	/*int iLoc = get_local_id(1);*/
-	/*int jLoc = get_local_id(0);*/
-	/*int iSize = get_local_size(1);*/
-	/*int jSize = get_local_size(0);*/
-	/*int iNum = get_group_id(1);*/
-	/*int jNum = get_group_id(0);*/
+	int iLoc = get_local_id(1);
+	int jLoc = get_local_id(0);
+	int iSize = get_local_size(1);
+	int jSize = get_local_size(0);
+	int iNum = get_group_id(1);
+	int jNum = get_group_id(0);
 	int iGlob = get_global_id(1);
 	int jGlob = get_global_id(0);
-	/*int iIn = iGlob + maskRadius;*/
-	/*int jIn = jGlob + maskRadius;*/
 
 	// i and j index something in the result matrix 
 	// 1. check that iGlob + maskRadius < width
 	// 2. check that jGlob + maskRadius < height
 
+	/*__local int tileMem[3*TILE_WIDTH*TILE_WIDTH];*/
+	__local int tileMem[3][TILE_WIDTH][TILE_WIDTH];
+
+	/*// load memory*/
+	if (iGlob < width && jGlob < height){
+		for(int k = 0; k < imageChannels; k++){
+			for(int j = jLoc; j < TILE_WIDTH; j+= jSize){
+				for(int i = iLoc; i < TILE_WIDTH; i+= iSize){
+					int yW = j+jSize*jNum;
+					int xW = i+iSize*iNum;
+					if(xW < height && yW < width){
+						int write = inputData[(yW*width+xW)*imageChannels+k];
+						tileMem[k][j][i] = write;
+					}
+					else
+						tileMem[k][j][i] = 0;
+				}
+			}
+		}
+	}
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
 	// bounds check for input dimension work items
 	if (iGlob < width - maskRadius &&  jGlob < height - maskRadius
 			&& iGlob - maskRadius >= 0 && jGlob - maskRadius >= 0
 			){
-	// bounds check for output dimension work items
-	// if (iGlob < width - maskRadius && jGlob < height - maskRadius){
-		int accum, xOffset, yOffset, imagePixel, maskValue;
+		int accum, xOffset, yOffset, imagePixel, maskValue, xOffsetTile, yOffsetTile;
 		// channels 
 		for(int channel = 0; channel < imageChannels; channel++){
 			accum = 0;
 			for(int x = -maskRadius; x <= maskRadius; x++){
 				for(int y = -maskRadius; y <= maskRadius; y++){
-					xOffset = iGlob + x;
-					yOffset = jGlob + y;
-					if (xOffset >= 0 && xOffset < width &&
-							yOffset >= 0 && yOffset < height) {
-						imagePixel = inputData[(yOffset * width + xOffset) * imageChannels + channel];
+					/*xOffset = iGlob + x;*/
+					/*yOffset = jGlob + y;*/
+					xOffsetTile = iLoc + x+maskRadius;
+					yOffsetTile = jLoc + y+maskRadius;
+					/*xOffset = iLoc + x +iSize*iNum;*/
+					/*yOffset = jLoc + y +jSize*jNum;*/
+					/*if (xOffset >= 0 && xOffset < width &&*/
+					/*		yOffset >= 0 && yOffset < height) {*/
+					if (xOffsetTile >= 0 && xOffsetTile < TILE_WIDTH &&
+							yOffsetTile >= 0 && yOffsetTile < TILE_WIDTH) {
+						/*imagePixel = inputData[(yOffset * width + xOffset) * imageChannels + channel];*/
+						/*imagePixel = tileMem[channel+imageChannels*(yOffsetTile*width + xOffsetTile)];*/
+						imagePixel = tileMem[channel][yOffsetTile][xOffsetTile];
 						maskValue = maskData[(y+maskRadius)*maskWidth+x+maskRadius];
+						// maskValue = maskData[y+maskRadius][x+maskRadius]
+						// imagePixel = tileMem[channel][yOffsetTile][xOffsetTile]
 						accum += imagePixel * maskValue;
 					}
 				}
