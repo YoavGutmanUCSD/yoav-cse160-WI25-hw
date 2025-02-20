@@ -1,4 +1,4 @@
-#define TILE_WIDTH 21
+#define TILE_WIDTH 30
 __kernel void convolution2D(
     __global int * inputData, __global int * outputData, __constant int * maskData,
     int width, int height, int maskWidth,  int imageChannels, int stride){
@@ -38,11 +38,6 @@ __kernel void convolution2D(
 	int iGlob = get_global_id(1);
 	int jGlob = get_global_id(0);
 
-	// i and j index something in the result matrix 
-	// 1. check that iGlob + maskRadius < width
-	// 2. check that jGlob + maskRadius < height
-
-	/*__local int tileMem[3*TILE_WIDTH*TILE_WIDTH];*/
 	__local int tileMem[3][TILE_WIDTH][TILE_WIDTH];
 
 	/*// load memory*/
@@ -56,14 +51,27 @@ __kernel void convolution2D(
 						int write = inputData[(yW*width+xW)*imageChannels+k];
 						tileMem[k][j][i] = write;
 					}
-					else
+					else{
+						/*printf("can I write to (%d,%d)? %s\n", xW, yW, (xW < height && yW < width) ? "YES" : "NO");*/
+						/*printf("(%d,%d) compared (width, height) of (%d,%d). can't write\n", yW, xW, width, height);*/
 						tileMem[k][j][i] = 0;
+					}
 				}
 			}
 		}
 	}
-
 	barrier(CLK_LOCAL_MEM_FENCE);
+	/*if(iLoc == 0 && jLoc == 0){*/
+	/*	for(int j = 0; j < TILE_WIDTH; j++){*/
+	/*		for(int i = 0; i < TILE_WIDTH; i++){*/
+	/*			for(int k = 0; k < 3; k++){*/
+	/*				printf("%d ", tileMem[k][j][i]);*/
+	/*			}*/
+	/*		}*/
+	/*		printf("\n");*/
+	/*	}*/
+	/*}*/
+
 
 	// bounds check for input dimension work items
 	if (iGlob < width - maskRadius &&  jGlob < height - maskRadius
@@ -86,12 +94,14 @@ __kernel void convolution2D(
 					if (xOffsetTile >= 0 && xOffsetTile < TILE_WIDTH &&
 							yOffsetTile >= 0 && yOffsetTile < TILE_WIDTH) {
 						/*imagePixel = inputData[(yOffset * width + xOffset) * imageChannels + channel];*/
-						/*imagePixel = tileMem[channel+imageChannels*(yOffsetTile*width + xOffsetTile)];*/
 						imagePixel = tileMem[channel][yOffsetTile][xOffsetTile];
 						maskValue = maskData[(y+maskRadius)*maskWidth+x+maskRadius];
 						// maskValue = maskData[y+maskRadius][x+maskRadius]
 						// imagePixel = tileMem[channel][yOffsetTile][xOffsetTile]
 						accum += imagePixel * maskValue;
+					}
+					else {
+						printf("oh\n");
 					}
 				}
 			}
