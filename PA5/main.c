@@ -169,12 +169,12 @@ void OpenCLConvolution2D(Image *input0, Matrix *input1, Image *result, int strid
 	size_t local_work_size[2] = {tileSize,tileSize};
 	// A^{LxN}^T * B^{LxM} = C^{NxM}
 	size_t global_work_size[2] = {
-		/*((result->shape[0]+(tileSize-1))/tileSize)*tileSize,*/
-		/*((result->shape[1]+(tileSize-1))/tileSize)*tileSize*/
+		((result->shape[0]+(tileSize-1))/tileSize)*tileSize,
+		((result->shape[1]+(tileSize-1))/tileSize)*tileSize
 		/*result->shape[0]*/
 		/*	, result->shape[1]*/
-		((input0->shape[0]+(tileSize-1))/tileSize)*tileSize,
-		((input0->shape[1]+(tileSize-1))/tileSize)*tileSize
+		/*((input0->shape[0]+(tileSize-1))/tileSize)*tileSize,*/
+		/*((input0->shape[1]+(tileSize-1))/tileSize)*tileSize*/
 		/*input0->shape[0]*/
 		/*	, input0->shape[1]*/
 
@@ -191,7 +191,8 @@ void OpenCLConvolution2D(Image *input0, Matrix *input1, Image *result, int strid
 			, 2 // work dimension, i think 2d so 2
 			, NULL
 			, global_work_size
-			, local_work_size
+			/*, local_work_size*/
+			, placeholder
 			, 0
 			, NULL
 			, NULL);
