@@ -92,6 +92,12 @@ const char *OclDeviceTypeString(cl_device_type type)
 }
 
 cl_int OclGetDeviceWithFallback(cl_device_id* device_id, cl_device_type device_type) {
+    int platform_index, device_index;
+
+    return OclGetDeviceInfoWithFallback(device_id, &platform_index, &device_index, device_type);
+}
+
+cl_int OclGetDeviceInfoWithFallback(cl_device_id* device_id, int* platform_index, int* device_index, cl_device_type device_type) {
     OclPlatformProp *platforms = NULL;
     cl_int err;
 
@@ -111,35 +117,35 @@ cl_int OclGetDeviceWithFallback(cl_device_id* device_id, cl_device_type device_t
     char* platform_index_str = getenv("PLATFORM_INDEX");
     char* device_index_str = getenv("DEVICE_INDEX");
 
-    int platform_index = -1;
-    int device_index = -1;
+    *platform_index = -1;
+    *device_index = -1;
 
     if (platform_index_str) {
-        platform_index = atoi(platform_index_str);
+        *platform_index = atoi(platform_index_str);
     }
 
     if (device_index_str) {
-        device_index = atoi(device_index_str);
+        *device_index = atoi(device_index_str);
     }
 
     // If we are missing either index, search instead based off of the requested device type.
-    if (platform_index == -1 || device_index == -1) {
-        platform_index = -1;
-        device_index = -1;
+    if (*platform_index == -1 || *device_index == -1) {
+        *platform_index = -1;
+        *device_index = -1;
 
         for (int i = 0; i < num_platforms; i++) {
             for (int j = 0; j < platforms[i].num_devices; j++) {
                 if (*platforms[i].devices[j].type == device_type) {
-                    platform_index = i;
-                    device_index = j;
+                    *platform_index = i;
+                    *device_index = j;
                 }
             }
         }
     }
 
-    if (platform_index != -1 && device_index != -1) {
-        *device_id = platforms[platform_index].devices[device_index].device_id;
-        printf("Running on:\n\tPlatform: %s\n\tDevice: %s\n\n", platforms[platform_index].name, platforms[platform_index].devices[device_index].name);
+    if (*platform_index != -1 && *device_index != -1) {
+        *device_id = platforms[*platform_index].devices[*device_index].device_id;
+        printf("Running on:\n\tPlatform: %s\n\tDevice: %s\n\n", platforms[*platform_index].name, platforms[*platform_index].devices[*device_index].name);
 
         return CL_SUCCESS;
     }
@@ -147,7 +153,10 @@ cl_int OclGetDeviceWithFallback(cl_device_id* device_id, cl_device_type device_t
     printf("\033[33mCould not find a %s or other requested device. Defaulting to first available device...\033[0m\n", OclDeviceTypeString(device_type));
 
     // If we got here, there is not a device which matches the requested device type.  Just return the first device.
-    *device_id = platforms[0].devices[0].device_id;;
+    *device_id = platforms[0].devices[0].device_id;
+    *platform_index = 0;
+    *device_index = 0;
+
     return CL_SUCCESS;
 }
 
