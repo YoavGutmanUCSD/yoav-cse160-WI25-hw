@@ -4,9 +4,8 @@
 #include <vector>
 #include <chrono>
 #include "../layer.h"
-#include "./custom/gpu-new-forward.h"
-#include "./custom/gpu-utils.h"
-#include "./custom/gpu.h"
+#include "./custom/opencl-new-forward.h"
+#include "./custom/opencl.h"
 
 class Conv_Custom: public Layer {
  private:
@@ -33,13 +32,12 @@ class Conv_Custom: public Layer {
 
   std::vector<Matrix> data_cols;
 
-  GPUInterface gpuInterface;
-  GPU_Utils gpuUtils;
+  OpenCLInterface openclInterface;
 
   void init();
 
  public:
-  GPU* gpu;
+  OpenCL* opencl;
 
   Conv_Custom(int channel_in, int height_in, int width_in, int channel_out,
        int height_kernel, int width_kernel, int stride = 1, int pad_w = 0,
@@ -47,7 +45,7 @@ class Conv_Custom: public Layer {
        dim_in(channel_in * height_in * width_in),
        channel_in(channel_in), height_in(height_in), width_in(width_in),
        channel_out(channel_out), height_kernel(height_kernel),
-       width_kernel(width_kernel), stride(stride), pad_w(pad_w), pad_h(pad_h), gpu(0)
+       width_kernel(width_kernel), stride(stride), pad_w(pad_w), pad_h(pad_h), opencl(0)
   { init(); }
 
   void forward(const Matrix& bottom);

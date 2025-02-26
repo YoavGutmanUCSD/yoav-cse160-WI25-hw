@@ -1,11 +1,12 @@
 #include "ece408net.h"
 
-#include "src/layer/custom/gpu.h"
+#include "device.h"
+#include "src/layer/custom/opencl.h"
 
 void inference_only(int batch_size) {
 
-  GPU gpu;
-  gpu.setup();
+  OpenCL opencl;
+  opencl.setup(CL_DEVICE_TYPE_GPU);
 
   std::cout<<"Loading fashion-mnist data...";
   MNIST dataset("./data/");
@@ -13,7 +14,7 @@ void inference_only(int batch_size) {
   std::cout<<"Done"<<std::endl;
   
   std::cout<<"Loading model...";
-  Network dnn = createNetwork_GPU(&gpu);
+  Network dnn = createNetwork_OpenCL(&opencl);
   std::cout<<"Done"<<std::endl;
 
   dnn.forward(dataset.test_data);
@@ -22,7 +23,7 @@ void inference_only(int batch_size) {
   std::cout<<"Test Accuracy: "<<acc<< std::endl;
   std::cout<<std::endl;
 
-  gpu.teardown();
+  opencl.teardown();
 }
 
 int main(int argc, char* argv[]) {

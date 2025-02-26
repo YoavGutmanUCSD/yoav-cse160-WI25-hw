@@ -1,11 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 
-#include "gpu.h"
-
-// TODO: HACK
-#include "device.c"
-#include "kernel.c"
+#include "opencl.h"
 
 #include "kernel.h"
 #include "device.h"
@@ -17,9 +13,9 @@
         exit(EXIT_FAILURE);                           \
     }
 
-void GPU::setup()
+void OpenCL::setup(cl_device_type device_type)
 {
-// Load external OpenCL kernel code
+    // Load external OpenCL kernel code
     char *kernel_source = OclLoadKernel(KERNEL_PATH); // Load kernel source
 
     cl_int err;
@@ -33,8 +29,8 @@ void GPU::setup()
     err = OclFindPlatforms((const OclPlatformProp **)&platforms, &num_platforms);
     CHECK_ERR(err, "OclFindPlatforms");
 
-    // Get the device subject to the OC_DEVICE_TYPE.
-    err = OclGetDeviceWithFallback(&device_id, OCL_DEVICE_TYPE);
+    // Get the device subject to the device_type.
+    err = OclGetDeviceWithFallback(&device_id, device_type);
     CHECK_ERR(err, "OclGetDeviceWithFallback");
 
     // Create a context
@@ -58,7 +54,7 @@ void GPU::setup()
     CHECK_ERR(err, "clCreateKernel");
 }
 
-void GPU::teardown()
+void OpenCL::teardown()
 {
     clReleaseProgram(this->program);
     clReleaseKernel(this->kernel);

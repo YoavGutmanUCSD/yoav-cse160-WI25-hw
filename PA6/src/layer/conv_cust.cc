@@ -35,33 +35,27 @@ void Conv_Custom::forward(const Matrix& bottom) {
   cl_mem y_d;
   cl_mem k_d;
 
-  std::cout<<"Conv-GPU=="<<std::endl;
+  std::cout<<"Conv-OpenCL=="<<std::endl;
 
-  gpuInterface.gpu = gpu;
-
-  // Launch marker kernel to aid with student function timing
-  gpuUtils.insert_pre_barrier_kernel();
+  openclInterface.opencl = opencl;
   
   // Start layer timer
   auto start_time_layer = std::chrono::high_resolution_clock::now();
   // Data transfer CPU to GPU
-  gpuInterface.conv_forward_gpu_prolog(y, x, k, &y_d, &x_d, &k_d, B, M, C, height_in, width_in, K);
+  openclInterface.conv_forward_opencl_prolog(y, x, k, &y_d, &x_d, &k_d, B, M, C, height_in, width_in, K);
   
   // Start kernel timer
   auto start_time_kernel = std::chrono::high_resolution_clock::now();
   // Hand off to GPU for computation
-  gpuInterface.conv_forward_gpu(y_d, x_d, k_d, B, M, C, height_in, width_in, K);
+  openclInterface.conv_forward_opencl(y_d, x_d, k_d, B, M, C, height_in, width_in, K);
   // Stop kernel timer
   auto end_time_kernel = std::chrono::high_resolution_clock::now();
   
   // Data transfer GPU to CPU
-  gpuInterface.conv_forward_gpu_epilog(y, y_d, x_d, k_d, B, M, C, height_in, width_in, K);
+  openclInterface.conv_forward_opencl_epilog(y, y_d, x_d, k_d, B, M, C, height_in, width_in, K);
 
   // Stop layer timer
   auto end_time_layer = std::chrono::high_resolution_clock::now();
-
-  // Launch barrier kernel to aid with timing with nsight-compute
-  gpuUtils.insert_post_barrier_kernel();
 
   std::chrono::duration<float, std::milli> duration_layer = (end_time_layer-start_time_layer);
   std::cout<<"Layer Time: " << duration_layer.count() << " ms"<<std::endl;

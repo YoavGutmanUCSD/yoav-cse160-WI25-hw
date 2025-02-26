@@ -2,13 +2,16 @@
 
 void inference_only(int batch_size) {
 
+  OpenCL opencl;
+  opencl.setup(CL_DEVICE_TYPE_CPU);
+
   std::cout<<"Loading fashion-mnist data...";
   MNIST dataset("./data/");
   dataset.read_test_data(batch_size);
   std::cout<<"Done"<<std::endl;
   
   std::cout<<"Loading model...";
-  Network dnn = createNetwork_CPU(true);
+  Network dnn = createNetwork_OpenCL(&opencl);
   std::cout<<"Done"<<std::endl;
 
   dnn.forward(dataset.test_data);
@@ -16,6 +19,8 @@ void inference_only(int batch_size) {
   std::cout<<std::endl;
   std::cout<<"Test Accuracy: "<<acc<< std::endl;
   std::cout<<std::endl;
+
+  opencl.teardown();
 }
 
 int main(int argc, char* argv[]) {

@@ -23,7 +23,7 @@ The network will be tested on the [Fashion MNIST dataset](https://github.com/zal
 This assignment requires you to complete a GPU implementation of the convolutional layer. Performance of the GPU implementation is not important as this assignment is intended to build functionality before optimizing. The only file you need to update to implement the forward convolution is:
 `cnn/src/layer/custom/new-forward-kernel.cl`.
 
- To understand which functions within `new-forward-kernel.cl` are being called and when, it may be helpful ot refer to `cnn/src/layer/custom/gpu.cc`.
+ To understand which functions within `new-forward-kernel.cl` are being called and when, it may be helpful ot refer to `cnn/src/layer/custom/opencl.cc`.
 
 Again, you are performing the following operation:
 ```{.ruby}
