@@ -13,7 +13,7 @@ __kernel void prefn_marker_kernel() {
 
 
 
-__kernel void conv_forward_kernel(__global float *y, __constant float *x, __constant float *k, const int B, const int M, const int C, const int H, const int W, const int K)
+__kernel void conv_forward_kernel(__global float *y, __global float *x, __constant float *k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
 #define y4d(i3, i2, i1, i0) y[(i3) * (M * H_out * W_out) + (i2) * (H_out * W_out) + (i1) * (W_out) + i0]
 #define x4d(i3, i2, i1, i0) x[(i3) * (C * H * W) + (i2) * (H * W) + (i1) * (W) + i0]

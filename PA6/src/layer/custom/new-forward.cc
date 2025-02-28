@@ -56,7 +56,7 @@ void OpenCLInterface::conv_forward_opencl_prolog(const float *host_y, const floa
 	*device_k = clCreateBuffer(
 			this->opencl->context
 			, CL_MEM_READ_ONLY
-			, K * K * C * B * sizeof(int)
+			, K * K * C * M * sizeof(int)
 			, NULL // host_ptr points to already allocated memory. we have none
 			, &err
 			);
@@ -89,7 +89,7 @@ void OpenCLInterface::conv_forward_opencl_prolog(const float *host_y, const floa
 			, *device_k
 			, CL_TRUE // maybe CL_FALSE possible -- try
 			, 0
-			, K * K * C * B * sizeof(int)
+			, K * K * C * M * sizeof(int)
 			, host_k
 			, 0
 			, NULL
@@ -141,7 +141,9 @@ void OpenCLInterface::conv_forward_opencl(cl_mem device_y, const cl_mem device_x
 		, B
 	    };
 
-	clEnqueueNDRangeKernel(
+	printf("before\n");
+	fflush(stdout);
+	err = clEnqueueNDRangeKernel(
 			this->opencl->queue
 			, this->opencl->kernel
 			, 1 // work dimension, it's 3d this time around
@@ -154,7 +156,9 @@ void OpenCLInterface::conv_forward_opencl(cl_mem device_y, const cl_mem device_x
 			, 0
 			, NULL
 			, NULL);
+    CHECK_ERR(err, "kernel error");
 	PRINT("launched kernel\n");
+	fflush(stdout);
 }
 
 
