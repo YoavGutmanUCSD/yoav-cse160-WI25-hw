@@ -25,46 +25,47 @@ __kernel void conv_forward_kernel(__global float *y, __global float *x, __consta
 	int maskRadius = K / 2;
 	int rowLoc = get_local_id(1); 
 	int colLoc = get_local_id(0); 
-	int rowOut = get_global_id(1);
-	int colOut = get_global_id(0);
-	int  h = rowOut - maskRadius; // rowIn
-	int  w = colOut - maskRadius; // colIn
+	int rowIn = get_global_id(1);
+	int colIn = get_global_id(0);
+	int  h = rowIn - maskRadius; // row in output
+	int  w = colIn - maskRadius; // col in output
 	/*__local tileMem[BLOCK_SIZE][BLOCK_SIZE];*/
 	int H_out = H - K + 1;
 	int W_out = W - K + 1;
-	int b = get_global_id(2);
+	int b = get_global_id(2); // batch
 
-	/*for (int b = 0; b < B; b++)             // for each image in batch*/
-		for(int m = 0; m < M; m++)          // for each output feature map
+	for(int m = 0; m < M; m++)          // for each output feature map
+	{
+		// local tileMem is [C][H][W]
+		// why not parallelize H and W?
+		// you can do B too
+
+		// load data if you're in range [not done]
+		/*if(rowOut < height && colOut < width)*/
+		/*{*/
+		/*	// tileMem[c][y][x] = x4d(b, c, h, w)*/
+		/**/
+		/*}*/
+		/*else */
+		/*{*/
+		/**/
+		/*}*/
+
+		// y4d(b, m, h, w) += k4d(m, c, p, q) * x4d(b, c, h+p, w+q) // normally
+		// y4d(b,m,h,w) += k4d(m, c, p, q) * tileMem[c][h+p][w+q] // with tile
+
+		if(h < H_out && h >= 0 && w < W_out && w >= 0)
 		{
-			// local tileMem is [C][H][W]
-			// why not parallelize H and W?
-
-			// tileMem[c][y][x] = x4d(b, c, h, w)
-			// y4d(b, m, h, w) += k4d(m, c, p, q) * x4d(b, c, h+p, w+q) // normally
-			// y4d(b,m,h,w) += k4d(m, c, p, q) * tileMem[c][h+p][w+q] // with tile
-
-			if(h < H_out && h >= 0 && w < W_out && w >= 0)
-			/*for(int h = 0; h < H_out; h++)  // for each output element*/
-			/*	for(int w = 0; w < W_out; w++) */
-				{
-					y4d(b, m, h, w) = 0.0f;
-					for(int c = 0; c < C; c++)     // sum over all input feature maps (channels)
-						for(int p = 0; p < K; p++) // KxK filter
-							for(int q = 0; q < K; q++)
-							{
-								y4d(b, m, h, w) += x4d(b, c, h + p, w + q) * k4d(m, c, p, q);
-							}
-				}
+			y4d(b, m, h, w) = 0.0f;
+			for(int c = 0; c < C; c++)     // sum over all input feature maps (channels)
+				for(int p = 0; p < K; p++) // KxK filter
+					for(int q = 0; q < K; q++)
+					{
+						y4d(b, m, h, w) += x4d(b, c, h + p, w + q) * k4d(m, c, p, q);
+					}
 		}
+	}
 
-	// load data if you're in range
-	/*if (rowIn >= 0 && rowIn < height && colIn >= 0 && colIn < width){*/
-	/**/
-	/*}*/
-	/*else {*/
-	/**/
-	/*}*/
 
 	// lecture naive algorithm
 	/*
