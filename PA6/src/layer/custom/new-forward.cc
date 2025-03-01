@@ -133,11 +133,12 @@ void OpenCLInterface::conv_forward_opencl(cl_mem device_y, const cl_mem device_x
 
     //@@ Launch the OpenCL Kernel here
     // Execute the OpenCL kernel on the array
-	size_t local_work_size[3] = {1,1,1};
+
+	/*size_t local_work_size[3] = {1,1,1};*/
 	size_t just_one = 1;
 	size_t global_work_size[3] = 
 	    { W
-		, H 
+		, H
 		, B
 	    };
 
@@ -146,13 +147,13 @@ void OpenCLInterface::conv_forward_opencl(cl_mem device_y, const cl_mem device_x
 	err = clEnqueueNDRangeKernel(
 			this->opencl->queue
 			, this->opencl->kernel
-			, 1 // work dimension, it's 3d this time around
+			, 3 // work dimension, it's 3d this time around
 			, NULL
-			/*, global_work_size*/
-			, &just_one
+			, global_work_size
+			/*, &just_one*/
 			/*, local_work_size*/
 			/*, &just_one*/
-			, NULL
+			, NULL // locwrksize
 			, 0
 			, NULL
 			, NULL);

@@ -23,18 +23,18 @@ __kernel void conv_forward_kernel(__global float *y, __global float *x, __consta
 	//@@ Insert code to implement convolution here
 	// variable definitions
 	int maskRadius = K / 2;
-	printf("B:%d, M:%d, C:%d, H:%d, W:%d, K:%d\n", B, M, C, H, W, K);
-	/*int rowLoc = get_local_id(0); */
-	/*int colLoc = get_local_id(1); */
-	/*int rowOut = get_global_id(0);*/
-	/*int colOut = get_global_id(1);*/
-	/*int  rowIn = rowOut - maskRadius;*/
-	/*int  colIn = colOut - maskRadius; */
+	int rowLoc = get_local_id(1); 
+	int colLoc = get_local_id(0); 
+	int rowOut = get_global_id(1);
+	int colOut = get_global_id(0);
+	int  h = rowOut - maskRadius; // rowIn
+	int  w = colOut - maskRadius; // colIn
 	/*__local tileMem[BLOCK_SIZE][BLOCK_SIZE];*/
 	int H_out = H - K + 1;
 	int W_out = W - K + 1;
+	int b = get_global_id(2);
 
-	for (int b = 0; b < B; b++)             // for each image in batch
+	/*for (int b = 0; b < B; b++)             // for each image in batch*/
 		for(int m = 0; m < M; m++)          // for each output feature map
 		{
 			// local tileMem is [C][H][W]
@@ -44,8 +44,9 @@ __kernel void conv_forward_kernel(__global float *y, __global float *x, __consta
 			// y4d(b, m, h, w) += k4d(m, c, p, q) * x4d(b, c, h+p, w+q) // normally
 			// y4d(b,m,h,w) += k4d(m, c, p, q) * tileMem[c][h+p][w+q] // with tile
 
-			for(int h = 0; h < H_out; h++)  // for each output element
-				for(int w = 0; w < W_out; w++) 
+			if(h < H_out && h >= 0 && w < W_out && w >= 0)
+			/*for(int h = 0; h < H_out; h++)  // for each output element*/
+			/*	for(int w = 0; w < W_out; w++) */
 				{
 					y4d(b, m, h, w) = 0.0f;
 					for(int c = 0; c < C; c++)     // sum over all input feature maps (channels)
