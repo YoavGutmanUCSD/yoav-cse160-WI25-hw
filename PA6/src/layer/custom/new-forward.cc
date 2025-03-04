@@ -14,6 +14,8 @@
         fprintf(stderr, "%s failed: %d.\n", msg, err); \
         exit(EXIT_FAILURE);                           \
     }
+#define COMPUTE_OUTUT_DIM(input_dim, kernel_size) \
+    ((input_dim - kernel_size) + 1)
 
 #define WILL_DEBUG 1
 #define PRINT if(WILL_DEBUG) printf
@@ -48,7 +50,7 @@ void OpenCLInterface::conv_forward_opencl_prolog(const float *host_y, const floa
 	*device_x = clCreateBuffer(
 			this->opencl->context
 			, CL_MEM_READ_ONLY
-			, W * H * B * C * sizeof(int)
+			, W * H * B * C * sizeof(float)
 			, NULL // host_ptr points to already allocated memory. we have none
 			, &err
 			);
@@ -56,7 +58,7 @@ void OpenCLInterface::conv_forward_opencl_prolog(const float *host_y, const floa
 	*device_k = clCreateBuffer(
 			this->opencl->context
 			, CL_MEM_READ_ONLY
-			, K * K * C * M * sizeof(int)
+			, K * K * C * M * sizeof(float)
 			, NULL // host_ptr points to already allocated memory. we have none
 			, &err
 			);
@@ -64,7 +66,7 @@ void OpenCLInterface::conv_forward_opencl_prolog(const float *host_y, const floa
 	*device_y = clCreateBuffer(
 			this->opencl->context
 			, CL_MEM_WRITE_ONLY
-			, (W - K+1) * (H - K+1) * B * M * sizeof(int)
+			, (W - K+1) * (H - K+1) * B * M * sizeof(float)
 			, NULL // host_ptr points to already allocated memory. we have none
 			, &err
 			);
@@ -77,7 +79,7 @@ void OpenCLInterface::conv_forward_opencl_prolog(const float *host_y, const floa
 			, *device_x
 			, CL_TRUE // maybe CL_FALSE possible -- try
 			, 0
-			, W * H * B * C * sizeof(int)
+			, W * H * B * C * sizeof(float)
 			, host_x
 			, 0
 			, NULL
@@ -89,7 +91,7 @@ void OpenCLInterface::conv_forward_opencl_prolog(const float *host_y, const floa
 			, *device_k
 			, CL_TRUE // maybe CL_FALSE possible -- try
 			, 0
-			, K * K * C * M * sizeof(int)
+			, K * K * C * M * sizeof(float)
 			, host_k
 			, 0
 			, NULL
@@ -134,13 +136,18 @@ void OpenCLInterface::conv_forward_opencl(cl_mem device_y, const cl_mem device_x
     //@@ Launch the OpenCL Kernel here
     // Execute the OpenCL kernel on the array
 
-	/*size_t local_work_size[3] = {1,1,1};*/
+	int tileSize = 16;
+	size_t local_work_size[3] = {tileSize,tileSize,1};
 	size_t just_one = 1;
 	size_t global_work_size[3] = 
-	    { W
-		, H
-		, B
-	    };
+		   { (COMPUTE_OUTUT_DIM(W, K)+tileSize-1)/tileSize*tileSize
+			, (COMPUTE_OUTUT_DIM(H, K)+tileSize-1)/tileSize*tileSize
+			,  B
+		   };
+		/*   { (W+tileSize-1)/tileSize*tileSize*/
+		/*, (H+tileSize-1)/tileSize*tileSize*/
+		/*,  B*/
+		/*   };*/
 
 	printf("before\n");
 	fflush(stdout);
@@ -176,7 +183,7 @@ void OpenCLInterface::conv_forward_opencl_epilog(float *host_y, cl_mem device_y,
 			, device_y
 			, CL_TRUE // maybe CL_FALSE possible -- try
 			, 0
-			, (W - K+1) * (H - K+1) * B * M * sizeof(int)
+			, (W - K+1) * (H - K+1) * B * M * sizeof(float)
 			, host_y
 			, 0
 			, NULL
