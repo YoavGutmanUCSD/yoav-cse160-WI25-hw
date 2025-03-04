@@ -22,71 +22,53 @@ __kernel void conv_forward_kernel(__global float *y, __global float *x, __consta
 
 	//@@ Insert code to implement convolution here
 	// variable definitions
+	const int H_out = H - K + 1;
+	const int W_out = W - K + 1;
 	int maskRadius = K / 2;
-	int rowLoc = get_local_id(1); 
-	int colLoc = get_local_id(0); 
-	int rowIn = get_global_id(1);
-	int colIn = get_global_id(0);
-	/*int  h = rowIn - maskRadius; // row in output (if aligned with x4d)*/
-	/*int  w = colIn - maskRadius; // col in output (if aligned with x4d)*/
-	__local float tileMem[TILE_WIDTH][TILE_WIDTH];
-	int H_out = H - K + 1;
-	int W_out = W - K + 1;
+	int W_grid = (W_out + TILE_WIDTH - 1) / TILE_WIDTH;
+
+	int hTileLoc = get_local_id(1);
+	int wTileLoc = get_local_id(0);
+	int hTileInd = get_group_id(1) / W_grid;
+	int wTileInd = get_group_id(1) % W_grid;
+
+	int h = hTileInd*TILE_WIDTH + hTileLoc;
+	int w = wTileInd*TILE_WIDTH + wTileLoc;
 	int b = get_global_id(2); // batch
+	int m = get_group_id(0); // output channel
+
+	__local float tileMem[TILE_WIDTH][TILE_WIDTH];
+
+	float accum = 0.0f;
 
 	for(int c = 0; c < C; c++)     // sum over all input feature maps (channels)
 	{
-		if(rowIn + maskRadius >= H || colIn + maskRadius >= W)
+		// load tiles
+		if(h+maskRadius < H && w+maskRadius < W)
+			tileMem[hTileLoc][wTileLoc] = x4d(b,c,h+maskRadius,w+maskRadius);
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		// compute
+		if(h < H_out && w < W_out)
 		{
-			tileMem[rowLoc][colLoc] = 0.0f;
-			/*printf("(rowIn, colIn) => (%d, %d). maskRadius is %d\n", rowIn, colIn, maskRadius);*/
-		}
-		else 
-			tileMem[rowLoc][colLoc] = x4d(b, c, rowIn+maskRadius, colIn+maskRadius);
-
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-		if(rowIn < H_out && rowIn >= 0 && colIn < W_out && colIn >= 0)
-			for(int m = 0; m < M; m++)          // for each output feature map
-			{
-				// local tileMem is [C][H][W]
-				// why not parallelize H and W?
-				// you can do B too
-
-				// load data if you're in range [not done]
-				/*if(rowOut < height && colOut < width)*/
-				/*{*/
-				/*	// tileMem[c][y][x] = x4d(b, c, h, w)*/
-				/**/
-				/*}*/
-				/*else */
-				/*{*/
-				/**/
-				/*}*/
-
-				// y4d(b, m, h, w) += k4d(m, c, p, q) * x4d(b, c, h+p, w+q) // normally
-				// y4d(b,m,h,w) += k4d(m, c, p, q) * tileMem[c][h+p][w+q] // with tile
-
+			for(int p = 0; p < K; p++)
+				for(int q = 0; q < K; q++)
 				{
-					/*y4d(b, m, h, w) = 0.0f;*/
-					/*y4d(b, m, rowIn, colIn) = 0.0f;*/
-					// here
-					for(int p = 0; p < K; p++) // KxK filter
-						for(int q = 0; q < K; q++)
-						{
-							if (rowLoc + p < maskRadius || p + rowLoc >= TILE_WIDTH + maskRadius
-									|| colLoc + q < maskRadius || colLoc + q >= TILE_WIDTH + maskRadius)
-								y4d(b, m, rowIn, colIn)
-									+= x4d(b, c, rowIn + p , colIn + q) 
-									* k4d(m, c, p, q);
-							else
-								y4d(b, m, rowIn, colIn)
-									+= tileMem[rowLoc + p - maskRadius][colLoc + q - maskRadius] 
-									* k4d(m, c, p, q);
-						}
+					if(hTileLoc+p < TILE_WIDTH && wTileLoc+q < TILE_WIDTH
+							&& hTileLoc+p >= maskRadius && wTileLoc+q >= maskRadius)
+						accum
+							+= tileMem[hTileLoc+p-maskRadius][wTileLoc+q-maskRadius] 
+							* k4d(m,c,p,q);
+					else
+						accum
+							+= x4d(b, c, h+p, w+q)
+							* k4d(m,c,p,q);
 				}
-			}
+			y4d(b, m, h, w) = accum;
+		}
+
 		barrier(CLK_LOCAL_MEM_FENCE);
+
 	}
 
 

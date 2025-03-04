@@ -139,15 +139,40 @@ void OpenCLInterface::conv_forward_opencl(cl_mem device_y, const cl_mem device_x
 	int tileSize = 16;
 	size_t local_work_size[3] = {tileSize,tileSize,1};
 	size_t just_one = 1;
+
+	// output dimension
+	size_t W_out = W - K + 1;
+	size_t H_out = H - K + 1;
+
+	// number of tiles
+	size_t W_grid = (W_out + tileSize - 1)/tileSize;
+	size_t H_grid = (H_out + tileSize - 1)/tileSize;
+
+	// number of columns per tile
+	size_t columnsPerTile = tileSize;
+
+	// linearized
+	// this way we shift the tile number to get_group_id(1)
+	// and row number to get_local_id(1)
+	size_t dim1 /*name wip*/ = W_grid * H_grid * tileSize;
+
+	// this way we shift the output channel to get_group_id(0)
+	// and col number to get_local_id(0)
+	size_t dim0 = M * tileSize;
+
 	size_t global_work_size[3] = 
-		   { (COMPUTE_OUTUT_DIM(W, K)+tileSize-1)/tileSize*tileSize
-			, (COMPUTE_OUTUT_DIM(H, K)+tileSize-1)/tileSize*tileSize
-			,  B
-		   };
-		/*   { (W+tileSize-1)/tileSize*tileSize*/
-		/*, (H+tileSize-1)/tileSize*tileSize*/
-		/*,  B*/
-		/*   };*/
+		    { dim0
+			, dim1
+			, B
+		    };
+			/* { (COMPUTE_OUTUT_DIM(W, K)+tileSize-1)/tileSize*tileSize*/
+			/*, (COMPUTE_OUTUT_DIM(H, K)+tileSize-1)/tileSize*tileSize*/
+			/*,  B*/
+			/* };*/
+			/*  { (W+tileSize-1)/tileSize*tileSize*/
+			/*  , (H+tileSize-1)/tileSize*tileSize*/
+			/*  ,  B*/
+			/*  };*/
 
 	printf("before\n");
 	fflush(stdout);
@@ -158,9 +183,9 @@ void OpenCLInterface::conv_forward_opencl(cl_mem device_y, const cl_mem device_x
 			, NULL
 			, global_work_size
 			/*, &just_one*/
-			/*, local_work_size*/
+			, local_work_size
 			/*, &just_one*/
-			, NULL // locwrksize
+			/*, NULL // locwrksize*/
 			, 0
 			, NULL
 			, NULL);
