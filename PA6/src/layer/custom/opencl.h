@@ -14,6 +14,9 @@ class OpenCL
         cl_command_queue queue;    // command queue
         cl_context context;        // context
 
+        OclPlatformProp *platform;
+        OclDeviceProp *device;
+
         void setup(cl_device_type device_type);
         void teardown();
 };

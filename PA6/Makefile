@@ -15,10 +15,10 @@ endif
 all: m2 m1
 
 m2:		../helper_lib/helper_lib.a m2.o ece408net.o src/network.o src/mnist.o layer.sentinel loss.sentinel custom.sentinel
-		$(CC) $(CFLAGS) ../helper_lib/kernel.c ../helper_lib/device.c m2.o ece408net.o src/network.o src/mnist.o src/layer/*.o src/loss/*.o src/layer/custom/*.o $(INCFLAGS) $(LDFLAGS) -o m2
+		$(CC) $(CFLAGS) m2.o ece408net.o src/network.o src/mnist.o src/layer/*.o src/loss/*.o src/layer/custom/*.o $(INCFLAGS) $(LDFLAGS) -o m2
 
 m1:		../helper_lib/helper_lib.a m1.o ece408net.o src/network.o src/mnist.o layer.sentinel loss.sentinel custom.sentinel
-		$(CC) $(CFLAGS) ../helper_lib/kernel.c ../helper_lib/device.c m1.o ece408net.o src/network.o src/mnist.o src/layer/*.o src/loss/*.o src/layer/custom/*.o $(INCFLAGS) $(LDFLAGS) -o m1
+		$(CC) $(CFLAGS) m1.o ece408net.o src/network.o src/mnist.o src/layer/*.o src/loss/*.o src/layer/custom/*.o $(INCFLAGS) $(LDFLAGS) -o m1
 
 # debug:	debug_m2
 
@@ -90,5 +90,10 @@ cpu:		m1
 gpu: 		m2
 		./m2 1000
 
-time: 		m2
+time: time_gpu
+
+time_gpu: 		m2
 		python3 ../utils/profile.py  --args ./m2 1000
+
+time_cpu: 	m1
+		python3 ../utils/profile.py  --args ./m1 1000

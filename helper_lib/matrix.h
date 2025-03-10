@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
 #else
@@ -17,3 +21,7 @@ cl_int LoadMatrix(const char *path, Matrix *matrix);
 cl_int SaveMatrix(const char *path, Matrix *matrix);
 cl_int CheckMatrix(Matrix *truth, Matrix *student);
 void PrintMatrix(Matrix *matrix);
+
+#ifdef __cplusplus
+}
+#endif

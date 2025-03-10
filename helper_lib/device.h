@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
@@ -128,3 +132,7 @@ cl_int OclFreePlatformProp(OclPlatformProp *platform);
  * @return CL_SUCCESS if and only if struct is successfully freed.
  */
 cl_int OclFreeDeviceProp(OclDeviceProp *device);
+
+#ifdef __cplusplus
+}
+#endif
