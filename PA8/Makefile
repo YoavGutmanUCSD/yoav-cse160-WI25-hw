@@ -1,7 +1,7 @@
 CC       = g++
 CFLAGS   = -g -Wall
-INCFLAGS := -I../helper_lib -I.
-LDFLAGS  := ../helper_lib/helper_lib.a -lm -lclblast
+INCFLAGS := -I../helper_lib -I. -I../helper_lib/CLBlast/include # -I../helper_lib/CLBlast/build/libclblast.so
+LDFLAGS  := ../helper_lib/helper_lib.a -lm ../helper_lib/CLBlast/build/libclblast.so
 
 ifeq ($(shell uname -o), Darwin)
 	LDFLAGS += -framework OpenCL
