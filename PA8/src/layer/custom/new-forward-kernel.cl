@@ -32,19 +32,22 @@ __kernel void im2col(__global float *unrolled, __global float *x, const int B,
   /*for(int row_i = 0; row_i < H; row_i++)*/
   /*for(int col_i = 0; col_i < W; col_i++)*/
 
+  int row_o_base = row_i - maskRadius;
+  int col_o_base = col_i - maskRadius;
   for(int p = 0; p < K; p++)
   for(int q = 0; q < K; q++)
   {
-    int row_o = row_i - maskRadius + p;
-    int col_o = col_i - maskRadius + q;
+    int row_o = row_o_base + p;
+    int col_o = col_o_base + q;
     _Bool row_o_in_bounds = row_o >= 0 && row_o < H-K+1;
     _Bool col_o_in_bounds = col_o >= 0 && col_o < W-K+1;
     if(row_o_in_bounds && col_o_in_bounds)
     {
-      /*int row_u = unroll_mat_dim(row_o, col_o);*/
-      int row_u = col_o * H_out + row_o;
+      int row_u = unroll_mat_dim(row_o, col_o);
+      /*int row_u = col_o * H_out + row_o;*/
+      /*int row_u = row_o * W_out + col_o;*/
       int col_u = unroll_mask_dim(cin, p, q);
-      x_unroll_3d(b, col_u, row_u) = x4d(b, cin, row_i+p, col_i+q);
+      x_unroll_3d(b, col_u, row_u) = x4d(b, cin, row_o+p, col_o+q);
     }
   }
 
