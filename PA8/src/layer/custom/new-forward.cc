@@ -135,12 +135,11 @@ void OpenCLInterface::conv_forward_gemm_opencl(cl_mem device_y, const cl_mem dev
     // @@ Call clblast::GemmBatched here
 	auto unroll_offsets = std::vector<size_t>();
 	auto output_offsets = std::vector<size_t>();
-	std::vector<size_t> alphas(B, 1);
-	std::vector<size_t> betas(B, 0);
+	std::vector<float> alphas(B, 1);
+	std::vector<float> betas(B, 0);
+	std::vector<size_t> zeroes(B, 0);
 	size_t single_unrolled_size = (W-K+1) * (H-K+1) * C * K * K;
 	size_t single_output_size = (W-K+1) * (H-K+1);
-	size_t* alphas_data = alphas.data();
-	size_t* betas_data = betas.data();
 	for(int i = 0; i < B; i++)
 	{
 		unroll_offsets.push_back(i * single_unrolled_size);
@@ -151,24 +150,24 @@ void OpenCLInterface::conv_forward_gemm_opencl(cl_mem device_y, const cl_mem dev
 	// solution: transpose both and do B∙A. then do another transpose. 
 	// this would be FUN. but maybe for LATER.
 
-	clblast::GemmBatched<size_t*>(
+	clblast::GemmBatched<float>(
 			clblast::Layout::kRowMajor   // const Layout layout
 			, clblast::Transpose::kNo    // const Transpose a_transpose
 			, clblast::Transpose::kNo    // const Transpose b_transpose
 			, M                          // const size_t m		rows in A. 
 			, (W-K+1)*(H-K+1)            // const size_t n		columns in B. 
 			, K*K*C                      // const size_t k		rows in B and columns in A.
-			, &alphas_data                // const T *alphas
+			, alphas.data()              // const T *alphas
 			, device_k                   // const cl_mem a_buffer
-			, betas.data()               // const size_t *a_offsets
+			, zeroes.data()              // const size_t *a_offsets
 			, K*K*C                      // const size_t a_ld
 			, device_x_unroll            // const cl_mem b_buffer
 			, unroll_offsets.data()      // const size_t *b_offsets
 			, (W-K+1)*(H-K+1)            // const size_t b_ld
-			, &betas_data                 // const T *betas
+			, betas.data()               // const T *betas
 			, device_y                   // cl_mem c_buffer
 			, output_offsets.data()      // const size_t *c_offsets
-			, M                          // const size_t c_ld
+			, (W-K+1)*(H-K+1)            // const size_t c_ld
 			, B                          // const size_t batch_count
 			, &this->opencl->queue       // cl_command_queue* queue
 			, NULL                       // cl_event* event
