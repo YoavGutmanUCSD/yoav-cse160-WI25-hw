@@ -94,8 +94,8 @@ void OpenCLInterface::conv_forward_gemm_opencl(cl_mem device_y, const cl_mem dev
     //@@ ====== Start im2col =====
 
     // @@ define local and global work sizes
-	size_t local_work_size[3] = {0,0,0};
-	size_t global_work_size[3] = {1,1,1};
+	/*size_t local_work_size[3] = {0,0,0};*/
+	size_t global_work_size[3] = {C,W*H,B};
 
 	cl_int err;
     err = clSetKernelArg(this->opencl->im2col_kernel,  0, sizeof(cl_mem), &device_x_unroll);
@@ -139,7 +139,7 @@ void OpenCLInterface::conv_forward_gemm_opencl(cl_mem device_y, const cl_mem dev
 	std::vector<float> betas(B, 0);
 	std::vector<size_t> zeroes(B, 0);
 	size_t single_unrolled_size = (W-K+1) * (H-K+1) * C * K * K;
-	size_t single_output_size = (W-K+1) * (H-K+1);
+	size_t single_output_size = M * (W-K+1) * (H-K+1);
 	for(int i = 0; i < B; i++)
 	{
 		unroll_offsets.push_back(i * single_unrolled_size);
@@ -167,7 +167,7 @@ void OpenCLInterface::conv_forward_gemm_opencl(cl_mem device_y, const cl_mem dev
 			, betas.data()               // const T *betas
 			, device_y                   // cl_mem c_buffer
 			, output_offsets.data()      // const size_t *c_offsets
-			, (W-K+1)*(H-K+1)            // const size_t c_ld
+			, (H-K+1)*(W-K+1)            // const size_t c_ld
 			, B                          // const size_t batch_count
 			, &this->opencl->queue       // cl_command_queue* queue
 			, NULL                       // cl_event* event
@@ -188,6 +188,26 @@ void OpenCLInterface::conv_forward_gemm_opencl(cl_mem device_y, const cl_mem dev
 void OpenCLInterface::conv_forward_gemm_opencl_epilog(float *host_y, cl_mem device_y, cl_mem device_x, cl_mem device_k, cl_mem device_x_unroll, const int B, const int M, const int C, const int H, const int W, const int K)
 {
     //@@ Copy the output back to host
+	clEnqueueReadBuffer(
+			this->opencl->queue
+			, device_y
+			, CL_TRUE // maybe CL_FALSE possible -- try
+			, 0
+			, (W - K+1) * (H - K+1) * B * M * sizeof(float)
+			, host_y
+			, 0
+			, NULL
+			, NULL
+			);
+	PRINT("read data\n");
 
+	for(int i = 0; i < 100; i++){
+		printf("%f ", host_y[i]);
+	}
+	printf("\n");
     //@@ Free the GPU memory here
+	clReleaseMemObject(device_k);
+	clReleaseMemObject(device_x);
+	clReleaseMemObject(device_x_unroll);
+	clReleaseMemObject(device_y);
 }
