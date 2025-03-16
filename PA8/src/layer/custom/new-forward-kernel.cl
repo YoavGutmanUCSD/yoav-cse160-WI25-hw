@@ -12,9 +12,6 @@ __kernel void im2col(__global float *unrolled, __global float *x, const int B,
 #define x_unroll_3d(i2, i1, i0) unrolled[(i2 * H_unroll + i1) * W_unroll + i0]
 #define unroll_mask_dim(c,p,q) (c * K*K + p*K + q)
 #define unroll_mat_dim(h,w) (h*W_out+w)
-// usage: x_unroll_3d(b, unroll_col(c,p,q), unroll_row(h,w))
-
-/*#define x_unroll_3d(i2, i1, i0) unrolled[(i2*C*K*K + i1)*(H-K+1)*(W-K+1)+i0]*/
 
   //@@ Define your im2col operations here.
   int W_out = (W-K+1);
@@ -27,31 +24,23 @@ __kernel void im2col(__global float *unrolled, __global float *x, const int B,
   int row_i = get_global_id(1) / W;
   int col_i = get_global_id(1) % W;
 
-  /*for(int b = 0; b < B; b++)*/
-  /*for(int cin = 0; cin < C_in; cin++)*/
-  /*for(int row_i = 0; row_i < H; row_i++)*/
-  /*for(int col_i = 0; col_i < W; col_i++)*/
-
   int row_o_base = row_i - maskRadius;
   int col_o_base = col_i - maskRadius;
   _Bool row_o_in_bounds = row_o_base >= 0 && row_o_base < H-K+1;
   _Bool col_o_in_bounds = col_o_base >= 0 && col_o_base < W-K+1;
-  if(row_o_in_bounds && col_o_in_bounds && cin < C_in && b < B)
-  for(int p = 0; p < K; p++)
-  for(int q = 0; q < K; q++)
-  {
-    int row_o = row_o_base + p;
-    int col_o = col_o_base + q;
-    /*_Bool row_o_in_bounds = row_o >= 0 && row_o < H-K+1;*/
-    /*_Bool col_o_in_bounds = col_o >= 0 && col_o < W-K+1;*/
-    /*if(row_o_in_bounds && col_o_in_bounds)*/
-    {
-      int row_u = unroll_mat_dim(row_o_base, col_o_base);
-      /*int row_u = col_o * H_out + row_o;*/
-      /*int row_u = row_o * W_out + col_o;*/
-      int col_u = unroll_mask_dim(cin, p, q);
-      x_unroll_3d(b, col_u, row_u) = x4d(b, cin, row_o, col_o);
-    }
+
+  if(row_o_in_bounds && col_o_in_bounds && cin < C_in && b < B){
+    int row_u = unroll_mat_dim(row_o_base, col_o_base);
+    for(int p = 0; p < K; p++)
+      for(int q = 0; q < K; q++)
+      {
+        int row_o = row_o_base + p;
+        int col_o = col_o_base + q;
+        int col_u = unroll_mask_dim(cin, p, q);
+
+        // unfortunately does not coalesce well. would have to remake to coalesce
+        x_unroll_3d(b, col_u, row_u) = x4d(b, cin, row_o, col_o);
+      }
   }
 
 	/* sequential pseudocode
